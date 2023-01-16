@@ -136,7 +136,12 @@ const processWebhooks = async () => {
       }
 
       const build = exec(
-        `BASEURL=/${webhook.repository}/${ref} ${repositoryURL} CI=true npm run build`,
+        `BASEURL=/${webhook.repository}/${ref} ${repositoryURL}  \\
+        docker run \\
+        -v $(pwd)/public:/app/public \\
+        -v $(pwd)/data:/app/data \\
+        -v $(pwd)/.env:/app/.env \\
+        skohub/skohub-vocabs-docker:dev`,
         { encoding: "UTF-8" }
       )
       build.stdout.on("data", (data) => {
@@ -169,7 +174,8 @@ const processWebhooks = async () => {
           )
         }
       })
-      build.on("exit", async () => {
+      build.on("exit", () => {
+        console.log("Build done!")
         if (webhook.status !== "error") {
           webhook.status = "complete"
           webhook.log.push({

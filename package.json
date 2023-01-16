@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "jest --verbose --forceExit"
+    "test": "jest --forceExit",
+    "test:unit": "jest --forceExit unit",
+    "test:int": "jest --forceExit int"
   },
   "repository": {
     "type": "git",

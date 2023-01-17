@@ -135,13 +135,17 @@ const processWebhooks = async () => {
         repositoryURL = `GATSBY_RESPOSITORY_URL=https://gitlab.com/${webhook.repository}`
       }
 
+      // the folder is necessary for the build, but we don't need it in the repo all the time, so it gets deleted later
+      fs.ensureDir(`${__dirname}/../public`)
+
       const build = exec(
         `BASEURL=/${webhook.repository}/${ref} ${repositoryURL}  \\
         docker run \\
         -v $(pwd)/public:/app/public \\
         -v $(pwd)/data:/app/data \\
         -v $(pwd)/.env:/app/.env \\
-        skohub/skohub-vocabs-docker:dev`,
+        -e LOCAL_UID=$(id -u $USER) -e LOCAL_GID=$(id -g $USER) \
+        skohub/skohub-vocabs-docker:new-node`,
         { encoding: "UTF-8" }
       )
       build.stdout.on("data", (data) => {
@@ -175,7 +179,6 @@ const processWebhooks = async () => {
         }
       })
       build.on("exit", () => {
-        console.log("Build done!")
         if (webhook.status !== "error") {
           webhook.status = "complete"
           webhook.log.push({

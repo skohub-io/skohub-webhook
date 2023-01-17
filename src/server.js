@@ -144,7 +144,7 @@ const processWebhooks = async () => {
         -v $(pwd)/public:/app/public \\
         -v $(pwd)/data:/app/data \\
         -v $(pwd)/.env:/app/.env \\
-        skohub/skohub-vocabs-docker:new-node`,
+        skohub/skohub-vocabs-docker:dev`,
         { encoding: "UTF-8" }
       )
       build.stdout.on("data", (data) => {

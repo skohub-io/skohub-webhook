@@ -144,7 +144,6 @@ const processWebhooks = async () => {
         -v $(pwd)/public:/app/public \\
         -v $(pwd)/data:/app/data \\
         -v $(pwd)/.env:/app/.env \\
-        -e LOCAL_UID=$(id -u $USER) -e LOCAL_GID=$(id -g $USER) \
         skohub/skohub-vocabs-docker:new-node`,
         { encoding: "UTF-8" }
       )

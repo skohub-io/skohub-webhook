@@ -138,14 +138,15 @@ const processWebhooks = async () => {
       // the folder is necessary for the build, but we don't need it in the repo all the time, so it gets deleted later
       fs.ensureDir(`${__dirname}/../public`)
 
-      const build = exec(
-        `docker run \\
-        -v $(pwd)/public:/app/public \\
-        -v $(pwd)/data:/app/data \\
-        -e BASEURL=/${webhook.repository}/${ref} \\
-        -e ${repositoryURL}  \\
+      // repositoryURL is not set in tests, therefore we add it conditionally
+      const build = exec(`
+        docker run \
+        -v $(pwd)/public:/app/public \
+        -v $(pwd)/data:/app/data \
+        -e BASEURL=/${webhook.repository}/${ref} \
+        ${repositoryURL ? `-e ${repositoryURL}` : '' }  \
         skohub/skohub-vocabs-docker:${SKOHUB_VOCABS_TAG}`,
-        { encoding: "UTF-8" }
+        { encoding: "UTF-8", shell: "/bin/bash" }
       )
       build.stdout.on("data", (data) => {
         console.log("gatsbyLog: " + data.toString())

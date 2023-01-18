@@ -1,15 +1,15 @@
 #!/bin/bash
 #
 ###
-# Provides:       skohub-vocabs
-# Description:    Script to start the skohub-vocabs server.
+# Provides:       skohub-webhook
+# Description:    Script to start the skohub-webhook server.
 #                 Use as standalone or in combination with
-#                 /etc/init.d/skohub-vocabs.sh.
+#                 /etc/init.d/skohub-webhook.sh.
 ####
 
 # config
-PORT=9006 # the port skohub-vocabs runs at
-NAME=skohub-vocabs
+PORT=9006 # the port skohub-webhook runs at
+NAME=skohub-webhook
 read -rd "" NODE_VERSION < ../.nvmrc
 
 if [ -n "$(lsof -i:$PORT)" ]; then
@@ -33,15 +33,15 @@ cd $HOME/git/$NAME/
 ###
 
 npm ci
-# start skohub-pubsub
-PORT=$PORT npm run listen >> logs/$NAME.log 2>&1 &
+# start skohub-webhook
+PORT=$PORT npm run start >> logs/$NAME.log 2>&1 &
 
 # getting the process id of the skohub server and create a pidfile
 PID=$(echo $!)
 sleep 15 # crucial: wait before all processes are started. Should be improved.
-PID_OF_SKOHUB_VOCAB="$(pgrep -P $(pgrep -P $PID))"
-if [ $PID_OF_SKOHUB_VOCAB ]; then
-      echo $PID_OF_SKOHUB_VOCAB > scripts/$NAME.pid
+PID_OF_SKOHUB_WEBHOOK="$(pgrep -P $(pgrep -P $PID))"
+if [ $PID_OF_SKOHUB_WEBHOOK ]; then
+      echo $PID_OF_SKOHUB_WEBHOOK > scripts/$NAME.pid
    else
       echo "Couldn' start $NAME"
       exit 1

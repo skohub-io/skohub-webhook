@@ -1,30 +1,30 @@
 #! /bin/sh
 #
 ### BEGIN INIT INFO
-# Provides:          skohub-vocabs
+# Provides:          skohub-webhook
 # Should-Start:      $monit
 # Required-Start:
 # Required-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: skohub-vocabs as a node server
-# Description:       skohub-vocabs as a node server available via http
+# Short-Description: skohub-webhook as a node server
+# Description:       skohub-webhook as a node server available via http
 ### END INIT INFO
 
 # this file should be placed into /etc/init.d/
 ### if you copy it to init.d:
-# set the home directory to your skohub-vocabs installation as an absolute path:
+# set the home directory to your skohub-webhook installation as an absolute path:
 HOME_=$HOME
 # set the owner of the process
 RUN_AS_USER=lod
 ### END copy to init.d
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-HOME_VOCABS=$HOME_/git/skohub-vocabs/scripts/
-DAEMON_START_SCRIPT=$HOME_VOCABS/start.sh
-NAME=skohub-vocabs
-PID_FILE=$HOME_VOCABS/$NAME.pid
-DESC="skohub-vocabs as a node server"
+HOME_WEBHOOK=$HOME_/git/skohub-webhook/scripts/
+DAEMON_START_SCRIPT=$HOME_WEBHOOK/start.sh
+NAME=skohub-webhook
+PID_FILE=$HOME_WEBHOOK/$NAME.pid
+DESC="skohub-webhook as a node server"
 
 
 ###

@@ -18,7 +18,7 @@ const {
 require("dotenv").config()
 require("colors")
 
-const { PORT, SECRET, BUILD_URL } = process.env
+const { PORT, SECRET, BUILD_URL, SKOHUB_VOCABS_TAG } = process.env
 const app = new Koa()
 const router = new Router()
 
@@ -144,7 +144,7 @@ const processWebhooks = async () => {
         -v $(pwd)/data:/app/data \\
         -e BASEURL=/${webhook.repository}/${ref} \\
         -e ${repositoryURL}  \\
-        skohub/skohub-vocabs-docker:dev`,
+        skohub/skohub-vocabs-docker:${SKOHUB_VOCABS_TAG}`,
         { encoding: "UTF-8" }
       )
       build.stdout.on("data", (data) => {

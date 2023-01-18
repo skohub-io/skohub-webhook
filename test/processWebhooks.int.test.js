@@ -14,7 +14,7 @@ afterEach(() => {
 })
 
 describe("processWebhooks", () => {
-  test("Should process a correct hook and create the files for a build ", async () => {
+  test("Should process a correct hook and create the files for a build", async () => {
     const ttlFile = await fs.readFile(`${__dirname}/data/interactivityType.ttl`)
 
     // Fake files url

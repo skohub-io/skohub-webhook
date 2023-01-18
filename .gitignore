@@ -1,5 +1,4 @@
 node_modules/
 public/
-data/
 dist/**/*.json
 .env

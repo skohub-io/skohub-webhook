@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const nock = require("nock")
 const {
   getHookGitHub,
@@ -659,7 +660,7 @@ describe("getRepositoryFiles", () => {
     ).rejects.toThrow("Not Found")
   })
 
-  test("Should throw error", async () => {
+  test("Should throw error of 404 not found", async () => {
     nock("https://gitlab.com:443", { encodedQueryParams: true })
       .get("/api/v4/projects/custom%2FtestTTL/repository/tree")
       .query({ ref: "refs%2Fheads%2Fmaster" })
@@ -674,7 +675,7 @@ describe("getRepositoryFiles", () => {
     ).rejects.toThrow("Not Found")
   })
 
-  test("Should throw error", async () => {
+  test("Should throw error: Malformed Custom Files", async () => {
     nock("http://localhost:6000")
       .get("/getFiles")
       .reply(200, [{ foo: "bar" }])

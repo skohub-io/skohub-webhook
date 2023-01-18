@@ -139,11 +139,11 @@ const processWebhooks = async () => {
       fs.ensureDir(`${__dirname}/../public`)
 
       const build = exec(
-        `BASEURL=/${webhook.repository}/${ref} ${repositoryURL}  \\
-        docker run \\
+        `docker run \\
         -v $(pwd)/public:/app/public \\
         -v $(pwd)/data:/app/data \\
-        -v $(pwd)/.env:/app/.env \\
+        -e BASEURL=/${webhook.repository}/${ref} \\
+        -e ${repositoryURL}  \\
         skohub/skohub-vocabs-docker:dev`,
         { encoding: "UTF-8" }
       )

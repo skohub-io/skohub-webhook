@@ -164,7 +164,16 @@ const processWebhooks = async () => {
         if (
           !data.toString().includes("Deprecation") &&
           !data.toString().includes("warning") &&
-          !data.toString().includes("lscpu")
+          !data.toString().includes("lscpu") &&
+          !data.toString().includes("Unable to find image") &&
+          !data.toString().includes("Pulling") &&
+          !data.toString().includes("Waiting") &&
+          !data.toString().includes("Already exists") &&
+          !data.toString().includes("Download complete") &&
+          !data.toString().includes("Verifying Checksum") &&
+          !data.toString().includes("Pull complete") &&
+          !data.toString().includes("Digest:") &&
+          !data.toString().includes("Status: Downloaded newer image")
         ) {
           webhook.log.push({
             date: new Date(),

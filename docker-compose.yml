@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  webhook:
+    build: .
+    runtime: sysbox-runc
+    restart: always
+    ports:
+      - ${PORT}:${PORT}
+    volumes:
+      - .env:/app/.env
+      - ./data:/app/data
+      - ./dist:/app/dist
+      - images:/var/lib/docker
+
+volumes:
+  images:

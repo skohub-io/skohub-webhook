@@ -1,4 +1,3 @@
-// const maybe = require("mjn")
 const crypto = require("crypto")
 const fetch = require("node-fetch")
 
@@ -110,7 +109,7 @@ const getRepositoryFiles = async ({ type, repository, ref, filesURL }) => {
   return verifyFiles(links)
 }
 
-const formatGitHubFiles = (files, repository, ref) => {
+const formatGitHubFiles = (files) => {
   if (files.message) {
     throw new Error(files.message)
   }

@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "test": "jest --forceExit",
+    "test": "jest --forceExit unit int",
     "test:unit": "jest --forceExit unit",
     "test:int": "jest --forceExit int",
+    "test:docker": "jest --forceExit docker",
     "lint:js": "eslint src --ext .jsx,.js --quiet"
   },
   "repository": {

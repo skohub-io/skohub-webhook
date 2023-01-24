@@ -4,7 +4,7 @@ const Router = require("koa-router")
 const bodyParser = require("koa-bodyparser")
 const { v4: uuidv4 } = require("uuid")
 const fs = require("fs-extra")
-const exec = require("child_process").exec
+const { exec, execSync } = require("child_process")
 const fetch = require("node-fetch")
 
 const {
@@ -18,12 +18,22 @@ const {
 require("dotenv").config()
 require("colors")
 
-const { PORT, SECRET, BUILD_URL, SKOHUB_VOCABS_TAG } = process.env
+const { PORT, SECRET, BUILD_URL, DOCKER_IMAGE, DOCKER_TAG } = process.env
 const app = new Koa()
 const router = new Router()
 
 const webhooks = []
 let processingWebhooks = false
+let buildLink
+
+const pullImage = async () => {
+  console.info(`Pull docker image: ${DOCKER_IMAGE}:${DOCKER_TAG}`)
+  const build = execSync(`docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}`)
+  console.log(build.toString())
+  console.info("Pull docker image: Done")
+}
+
+pullImage()
 
 const getFile = async (file, repository) => {
   if (!file || !repository) {
@@ -82,8 +92,9 @@ router.post("/build", async (ctx) => {
       filesURL,
       ref,
     })
+    buildLink = `${BUILD_URL}?id=${id}`
     ctx.status = 202
-    ctx.body = `Build triggered: ${BUILD_URL}?id=${id}`
+    ctx.body = `Build triggered: ${buildLink}`
     console.log("Build triggered")
   } else {
     ctx.status = 400
@@ -139,16 +150,31 @@ const processWebhooks = async () => {
       fs.ensureDir(`${__dirname}/../public`)
 
       // repositoryURL is not set in tests, therefore we add it conditionally
-      const build = exec(`
+      const dockerCommand = `
         docker run \
         -v $(pwd)/public:/app/public \
         -v $(pwd)/data:/app/data \
         -e BASEURL=/${webhook.repository}/${ref} \
-        ${repositoryURL ? `-e ${repositoryURL}` : '' }  \
-        skohub/skohub-vocabs-docker:${SKOHUB_VOCABS_TAG}`,
-        { encoding: "UTF-8", shell: "/bin/bash" }
-      )
+        ${repositoryURL ? `-e ${repositoryURL}` : ""}  \
+        ${DOCKER_IMAGE}:${DOCKER_TAG}`
+      const build = exec(dockerCommand, {
+        encoding: "UTF-8",
+        shell: "/bin/bash",
+      })
       build.stdout.on("data", (data) => {
+        if (data.toString().toLowerCase().includes("error")) {
+          webhook.log.push({
+            date: new Date(),
+            text: data.toString(),
+            warning: true,
+          })
+          webhook.status = "error"
+          fs.writeFile(
+            `${__dirname}/../dist/build/${webhook.id}.json`,
+            JSON.stringify(webhook)
+          )
+        }
+
         console.log("gatsbyLog: " + data.toString())
         webhook.log.push({
           date: new Date(),
@@ -188,28 +214,44 @@ const processWebhooks = async () => {
         }
       })
       build.on("exit", () => {
+        try {
+          fs.readdirSync(`${__dirname}/../data/`)
+            .filter((filename) => filename !== ".gitignore")
+            .forEach((filename) =>
+              fs.removeSync(`${__dirname}/../data/${filename}`)
+            )
+          fs.removeSync(`${__dirname}/../dist/${webhook.repository}/${ref}/`)
+          fs.moveSync(
+            `${__dirname}/../public/`,
+            `${__dirname}/../dist/${webhook.repository}/${ref}/`
+          )
+        } catch (error) {
+          webhook.log.push({
+            date: new Date(),
+            text: error,
+            warning: true,
+          })
+          webhook.status = "error"
+          fs.writeFile(
+            `${__dirname}/../dist/build/${webhook.id}.json`,
+            JSON.stringify(webhook)
+          )
+          console.error(error)
+        }
         if (webhook.status !== "error") {
           webhook.status = "complete"
           webhook.log.push({
             date: new Date(),
             text: "Build Finish",
           })
+          console.info("Build Finish".yellow)
+        } else {
+          console.error(`Error during build, see log for details: ${buildLink}`)
         }
         fs.writeFile(
           `${__dirname}/../dist/build/${webhook.id}.json`,
           JSON.stringify(webhook)
         )
-        fs.readdirSync(`${__dirname}/../data/`)
-          .filter((filename) => filename !== ".gitignore")
-          .forEach((filename) =>
-            fs.removeSync(`${__dirname}/../data/${filename}`)
-          )
-        fs.removeSync(`${__dirname}/../dist/${webhook.repository}/${ref}/`)
-        fs.moveSync(
-          `${__dirname}/../public/`,
-          `${__dirname}/../dist/${webhook.repository}/${ref}/`
-        )
-        console.info("Build Finish".yellow)
         processingWebhooks = false
       })
     }

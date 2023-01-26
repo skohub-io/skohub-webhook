@@ -28,6 +28,15 @@ This will make use of the `skohub-vocabs-docker` image (or some other image you 
 The resulting pages are then copied to the `dist` directory, while using the repository and ref informations to build the paths to avoid paths conflicts (e.g. `dist/sroertgen/test-vocabs/heads/main`).
 This directory can then be served from a webserver like Apache.
 
+### How does it work in detail?
+
+The webhook server is started via the `docker-compose.yml` with a simple `docker compose up`.
+The [Sysbox](https://github.com/nestybox/sysbox) runtime is used to safley run docker in docker.
+This is necessary, because the webhook server starts the docker image of [`skohub-vocabs`](https://hub.docker.com/r/skohub/skohub-vocabs-docker/tags) to build the vocabularies, when it got triggered.
+We also bind mount the `.env` file to pass environment variables and the `dist`-folder.
+When a webhook is received and valid, the webhook server executes a docker run command where it bind mounts the received turtle files into the container and at the end copies the built vocabularies from the public folder to the dist folder with the above mentioned path construction.
+The `images` volume is used to save the downloaded docker images, so the are persisted during restarts.
+
 ## Running the webhook server
 
 The webhook server allows to trigger a build when vocabularies are updated (i.e. changes are merged into the `main` branch) on GitHub.

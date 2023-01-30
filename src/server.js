@@ -8,17 +8,16 @@ const { exec, execSync } = require("child_process")
 const fetch = require("node-fetch")
 
 const {
-  getHookGitHub,
-  getHookGitLab,
-  getHookSkoHub,
   isValid,
   getRepositoryFiles,
+  parseHook
 } = require("./common")
 
 require("dotenv").config()
 require("colors")
 
-const { PORT, SECRET, BUILD_URL, DOCKER_IMAGE, DOCKER_TAG } = process.env
+const { PORT, SECRET, BUILD_URL, DOCKER_IMAGE, DOCKER_TAG, PULL_IMAGE_SECRET } =
+  process.env
 const app = new Koa()
 const router = new Router()
 
@@ -54,14 +53,8 @@ const getFile = async (file, repository) => {
 router.post("/build", async (ctx) => {
   const { body, headers } = ctx.request
 
-  let hook
-  if (headers["x-github-event"]) {
-    hook = getHookGitHub(headers, body, SECRET)
-  } else if (headers["x-gitlab-event"]) {
-    hook = getHookGitLab(headers, body, SECRET)
-  } else if (headers["x-skohub-event"]) {
-    hook = getHookSkoHub(headers, body, SECRET)
-  } else {
+  let hook = parseHook(headers, body, SECRET)
+  if (!hook) {
     console.warn("Bad request, the event header is missing")
     ctx.status = 400
     ctx.body = "Bad request, the event header is missing"
@@ -77,7 +70,7 @@ router.post("/build", async (ctx) => {
   }
 
   // Check if the given event is valid
-  if (isValid(hook)) {
+  if (isValid(hook, "push")) {
     const id = uuidv4()
     const { type, repository, headers, ref, filesURL } = hook
     webhooks.push({
@@ -100,6 +93,53 @@ router.post("/build", async (ctx) => {
     ctx.status = 400
     ctx.body = "Payload was invalid, build not triggered"
     console.log("Payload was invalid, build not triggered")
+  }
+})
+
+router.post("/image", async (ctx) => {
+  const { body, headers } = ctx.request
+
+  let hook = parseHook(headers, body, PULL_IMAGE_SECRET)
+  if (!hook) {
+    console.warn("Bad request, the event header is missing")
+    ctx.status = 400
+    ctx.body = "Bad request, the event header is missing"
+    return
+  }
+
+  // Check if the given signature is valid
+  if (!hook.isSecured) {
+    console.warn("Bad request, the token is incorrect")
+    ctx.status = 400
+    ctx.body = "Bad request, the token is incorrect"
+    return
+  }
+
+  // Check if the given event is valid
+  if (isValid(hook, "workflow_job")) {
+    const dockerCommand = `docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}`
+    exec(
+      dockerCommand,
+      {
+        encoding: "UTF-8",
+        shell: "/bin/bash",
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error(`exec error: ${error}`)
+          return
+        }
+        stdout && console.log(`stdout: ${stdout}`)
+        stderr && console.error(`stderr: ${stderr}`)
+      }
+    )
+    ctx.status = 200
+    ctx.body = `Pulling new image`
+    console.log("Pulling new image")
+  } else {
+    ctx.status = 400
+    ctx.body = "Payload was invalid, pull of new image not triggered"
+    console.log("Payload was invalid, pull of new image not triggered")
   }
 })
 

@@ -5,6 +5,12 @@ const getHookGitHub = (headers, payload, SECRET) => {
   const obj = {
     type: "github",
     isPush: (headers && headers["x-github-event"] === "push") || false,
+    isCompletedWorkflowJob:
+      (headers &&
+        headers["x-github-event"] === "workflow_job" &&
+        payload?.action === "completed" &&
+        payload.workflow_job === "docker") ||
+      false,
     repository: payload?.repository?.full_name ?? null,
     isSecured:
       (headers &&
@@ -53,20 +59,31 @@ const getHookSkoHub = (headers, payload, SECRET) => {
   return obj
 }
 
-const isValid = (hook) => {
-  const { isPush, repository, ref } = hook
+const isValid = (hook, event) => {
+  const { isPush, isCompletedWorkflowJob, repository, ref } = hook
 
-  return (
-    isPush === true && // Only accept push request
-    repository !== null &&
-    /^[^/]+\/[^/]+$/.test(repository) && // Has a valid repository
-    ref !== null &&
-    /^refs\/heads|tags\/[^/]+$/.test(ref)
-  ) // Has a valid ref
+  if (event === "push") {
+    return (
+      isPush === true && // Only accept push request
+      repository !== null &&
+      /^[^/]+\/[^/]+$/.test(repository) && // Has a valid repository
+      ref !== null &&
+      /^refs\/heads|tags\/[^/]+$/.test(ref)
+    ) // Has a valid ref
+  } else if (event === "workflow_job") {
+    return (
+      isCompletedWorkflowJob === true && // Only accept push request
+      repository !== null &&
+      /^[^/]+\/[^/]+$/.test(repository) && // Has a valid repository
+      ref !== null &&
+      /^refs\/heads|tags\/[^/]+$/.test(ref)
+    ) // Has a valid ref
+  }
+  return false
 }
 
 const isSecured = (signature, payload, SECRET) => {
-  // Is not secured if all the parameters all not present
+  // Is not secured if all the parameters are not present
   if (!signature || !payload || !SECRET) {
     return false
   }
@@ -152,6 +169,18 @@ const verifyFiles = (files) => {
 const getHeaders = (hub, self, path) =>
   `Header set Link "<${hub}>; rel=\\"hub\\", <${self}>; rel=\\"self\\"" "expr=%{REQUEST_URI} =~ m|${path}|"`
 
+const parseHook = (headers, body, secret) => {
+  if (headers["x-github-event"]) {
+    return getHookGitHub(headers, body, secret)
+  } else if (headers["x-gitlab-event"]) {
+    return getHookGitLab(headers, body, secret)
+  } else if (headers["x-skohub-event"]) {
+    return getHookSkoHub(headers, body, secret)
+  } else {
+    return
+  }
+}
+
 module.exports = {
   getHeaders,
   getHookGitHub,
@@ -160,4 +189,5 @@ module.exports = {
   isValid,
   isSecured,
   getRepositoryFiles,
+  parseHook,
 }

@@ -31,41 +31,53 @@ describe("isSecured", () => {
 describe("isValid", () => {
   test("The hook should be invalid since is not push", () => {
     expect(
-      isValid({
-        isPush: false,
-        repository: "user/reponame",
-        ref: "refs/heads/master",
-      })
+      isValid(
+        {
+          isPush: false,
+          repository: "user/reponame",
+          ref: "refs/heads/master",
+        },
+        "push"
+      )
     ).toBe(false)
   })
 
   test("The hook should be invalid since the repositioty is invalid", () => {
     expect(
-      isValid({
-        isPush: true,
-        repository: "invalidreponame",
-        ref: "refs/heads/master",
-      })
+      isValid(
+        {
+          isPush: true,
+          repository: "invalidreponame",
+          ref: "refs/heads/master",
+        },
+        "push"
+      )
     ).toBe(false)
   })
 
   test("The hook should be invalid since the ref is invalid", () => {
     expect(
-      isValid({
-        isPush: true,
-        repository: "invalidreponame",
-        ref: "master",
-      })
+      isValid(
+        {
+          isPush: true,
+          repository: "invalidreponame",
+          ref: "master",
+        },
+        "push"
+      )
     ).toBe(false)
   })
 
   test("The hook should be invalid since the repository is invalid", () => {
     expect(
-      isValid({
-        isPush: true,
-        repository: "user@reponame",
-        ref: "refs/heads/master",
-      })
+      isValid(
+        {
+          isPush: true,
+          repository: "user@reponame",
+          ref: "refs/heads/master",
+        },
+        "push"
+      )
     ).toBe(false)
   })
 
@@ -73,13 +85,29 @@ describe("isValid", () => {
     expect(isValid({})).not.toBe(true)
   })
 
-  test("The hook should be valid", () => {
+  test("The hook should be valid for push event", () => {
     expect(
-      isValid({
-        isPush: true,
-        repository: "user/reponame",
-        ref: "refs/heads/master",
-      })
+      isValid(
+        {
+          isPush: true,
+          repository: "user/reponame",
+          ref: "refs/heads/master",
+        },
+        "push"
+      )
+    ).toBe(true)
+  })
+
+  test("The hook should be valid for workflow_job event", () => {
+    expect(
+      isValid(
+        {
+          isCompletedWorkflowJob: true,
+          repository: "user/reponame",
+          ref: "refs/heads/master",
+        },
+        "workflow_job"
+      )
     ).toBe(true)
   })
 })
@@ -89,6 +117,7 @@ describe("getHookGitHub", () => {
     expect(getHookGitHub(null, null, null)).toStrictEqual({
       headers: null,
       isPush: false,
+      isCompletedWorkflowJob: false,
       isSecured: false,
       ref: null,
       repository: null,
@@ -111,6 +140,7 @@ describe("getHookGitHub", () => {
         "x-hub-signature": "*******************",
       },
       isPush: true,
+      isCompletedWorkflowJob: false,
       isSecured: false,
       ref: null,
       repository: null,
@@ -130,6 +160,50 @@ describe("getHookGitHub", () => {
         "x-hub-signature": "*******************",
       },
       isPush: false,
+      isCompletedWorkflowJob: false,
+      isSecured: false,
+      ref: null,
+      repository: null,
+      type: "github",
+    })
+  })
+
+  test("Should correctly validate the workflow_job event", () => {
+    expect(
+      getHookGitHub(
+        {
+          "x-github-event": "workflow_job",
+        },
+        { action: "completed", workflow_job: "docker" },
+        null
+      )
+    ).toStrictEqual({
+      headers: {
+        "x-github-event": "workflow_job",
+        "x-hub-signature": "*******************",
+      },
+      isPush: false,
+      isCompletedWorkflowJob: true,
+      isSecured: false,
+      ref: null,
+      repository: null,
+      type: "github",
+    })
+    expect(
+      getHookGitHub(
+        {
+          "x-github-event": "incorrect",
+        },
+        null,
+        null
+      )
+    ).toStrictEqual({
+      headers: {
+        "x-github-event": "incorrect",
+        "x-hub-signature": "*******************",
+      },
+      isPush: false,
+      isCompletedWorkflowJob: false,
       isSecured: false,
       ref: null,
       repository: null,
@@ -151,6 +225,7 @@ describe("getHookGitHub", () => {
     ).toStrictEqual({
       headers: null,
       isPush: false,
+      isCompletedWorkflowJob: false,
       isSecured: false,
       ref: null,
       repository: "testing",
@@ -167,6 +242,7 @@ describe("getHookGitHub", () => {
     ).toStrictEqual({
       headers: null,
       isPush: false,
+      isCompletedWorkflowJob: false,
       isSecured: false,
       ref: null,
       repository: null,
@@ -186,6 +262,7 @@ describe("getHookGitHub", () => {
     ).toStrictEqual({
       headers: null,
       isPush: false,
+      isCompletedWorkflowJob: false,
       isSecured: false,
       ref: "refs/heads/master",
       repository: null,
@@ -207,6 +284,7 @@ describe("getHookGitHub", () => {
         "x-hub-signature": "*******************",
       },
       isPush: false,
+      isCompletedWorkflowJob: false,
       isSecured: true,
       ref: null,
       repository: null,
@@ -230,7 +308,7 @@ describe("getHookGitHub", () => {
     )
 
     expect(hook.isSecured).toBe(true)
-    expect(isValid(hook)).toBe(true)
+    expect(isValid(hook, "push")).toBe(true)
   })
 })
 
@@ -380,7 +458,7 @@ describe("getHookGitLab", () => {
     )
 
     expect(hook.isSecured).toBe(true)
-    expect(isValid(hook)).toBe(true)
+    expect(isValid(hook, "push")).toBe(true)
   })
 })
 
@@ -537,7 +615,7 @@ describe("getHookSkoHub", () => {
     )
 
     expect(hook.isSecured).toBe(true)
-    expect(isValid(hook)).toBe(true)
+    expect(isValid(hook, "push")).toBe(true)
   })
 })
 

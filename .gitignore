@@ -2,4 +2,3 @@ node_modules/
 public/
 dist/**/*.json
 .env
-test/generateSignature.js

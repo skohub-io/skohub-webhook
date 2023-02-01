@@ -72,7 +72,7 @@ const isValid = (hook, event) => {
     ) // Has a valid ref
   } else if (event === "workflow_job") {
     return (
-      isCompletedWorkflowJob === true && // Only accept push request
+      isCompletedWorkflowJob === true && // Only accept completed workflow job
       repository !== null &&
       /^[^/]+\/[^/]+$/.test(repository) && // Has a valid repository
       ref !== null &&

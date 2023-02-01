@@ -84,7 +84,7 @@ Run the test script in a separate terminal with `npm run test:docker`.
 
 ### Test the `/build` endpoint
 
-Here is an example Curl to test the image endpoint with `SECRET=ThisIsATest`:
+Here is an example Curl to test the build endpoint with `SECRET=ThisIsATest`:
 
 ```bash
 curl --request POST \

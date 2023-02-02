@@ -61,7 +61,7 @@ In order to wire this up with GitHub, this has to be available to the public. Yo
 
 ## Restarting or Rebuilding the webhook server
 
-To restart and rebuild the service, e.g. after a `git pull` do `docker-compose up --build --force-recreate`.
+To restart and rebuild the service, e.g. after a `git pull` do `docker compose up --build --force-recreate`.
 
 ## Connecting to our webhook server
 

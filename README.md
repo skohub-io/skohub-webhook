@@ -52,12 +52,14 @@ The `images` volume is used to save the downloaded docker images, so the are per
 
 The webhook server allows to trigger a build when vocabularies are updated (i.e. changes are merged into the `main` branch) on GitHub.
 
-Running `docker compose up` will start the server on the defined `PORT` and expose a `build` endpoint.
+Running `docker compose up` will start the server on the defined `PORT` and expose the `/build` and `/image` endpoints.
 Add `-d` flag to run in detached mode.
 Use `docker compose logs` to see the logs (add `-f` to follow).
 In order to wire this up with GitHub, this has to be available to the public. You can then configure the webhook in your GitHub repositories settings:
 
 ![image](https://user-images.githubusercontent.com/149825/62695510-c756b880-b9d6-11e9-86a9-0c4dcd6bc2cd.png)
+
+## Restarting or Rebuilding the webhook server
 
 To restart and rebuild the service, e.g. after a `git pull` do `docker-compose up --build --force-recreate`.
 

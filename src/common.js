@@ -9,7 +9,7 @@ const getHookGitHub = (headers, payload, SECRET) => {
       (headers &&
         headers["x-github-event"] === "workflow_job" &&
         payload?.action === "completed" &&
-        payload.workflow_job === "docker") ||
+        payload.workflow_job.name === "docker") ||
       false,
     repository: payload?.repository?.full_name ?? null,
     isSecured:
@@ -74,10 +74,8 @@ const isValid = (hook, event) => {
     return (
       isCompletedWorkflowJob === true && // Only accept completed workflow job
       repository !== null &&
-      /^[^/]+\/[^/]+$/.test(repository) && // Has a valid repository
-      ref !== null &&
-      /^refs\/heads|tags\/[^/]+$/.test(ref)
-    ) // Has a valid ref
+      /^[^/]+\/[^/]+$/.test(repository) // Has a valid repository
+    )
   }
   return false
 }

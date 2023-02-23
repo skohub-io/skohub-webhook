@@ -174,7 +174,7 @@ describe("getHookGitHub", () => {
         {
           "x-github-event": "workflow_job",
         },
-        { action: "completed", workflow_job: "docker" },
+        { action: "completed", workflow_job: {name: "docker"} },
         null
       )
     ).toStrictEqual({

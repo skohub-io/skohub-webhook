@@ -127,6 +127,51 @@ curl --request POST \
 
 ```
 
+## Web server
+
+In order to publish the webhook endpoints and the resulting vocabs we recommend a reverse-proxy setup using the Apache web server. Here is an example configuration:
+
+```
+# Reverse proxy
+<VirtualHost *:443>
+    ServerName your.domain
+    [...]
+
+    RewriteEngine On
+
+    RewriteRule (.*)/images/(.*)           http://10.0.0.1/$1/images/$2 [P,L]
+    
+    RewriteCond %{REQUEST_METHOD} "=POST"
+    RewriteRule /build(.*)           http://10.0.0.1:3000/build$1 [P,L]
+    RewriteRule /image$           http://10.0.0.1:3000/image [P,L]
+
+    ProxyPass / http://10.0.0.1/
+    ProxyPassReverse / http://10.0.0.1/
+    ProxyRequests Off
+
+</VirtualHost>
+```
+
+```
+# Backend server 10.0.0.1
+<VirtualHost *:80>
+    [...]
+
+    DocumentRoot /opt/skohub-webhook/dist   
+ 
+    <Directory "/opt/skohub-webhook/dist">
+       DirectoryIndex index
+       Header set Access-Control-Allow-Origin "*"
+       Options Indexes FollowSymlinks Multiviews
+       AddType text/index .index
+       AddType application/ld+json .json
+       AllowOverride All
+       Require all granted
+    </Directory>
+
+</VirtualHost>
+```
+
 ## Credits
 
 The project to create a stable beta version of SkoHub has been funded by the North-Rhine Westphalian Library Service Centre (hbz) and carried out in cooperation with [graphthinking GmbH](https://graphthinking.com/) in 2019/2020.

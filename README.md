@@ -142,8 +142,8 @@ In order to publish the webhook endpoints and the resulting vocabs we recommend 
     RewriteRule (.*)/images/(.*)           http://10.0.0.1/$1/images/$2 [P,L]
     
     RewriteCond %{REQUEST_METHOD} "=POST"
-    RewriteRule /build(.*)           http://10.0.0.1:3000/build$1 [P,L]
-    RewriteRule /image$           http://10.0.0.1:3000/image [P,L]
+    RewriteRule ^/build(.*)           http://10.0.0.1:3000/build$1 [P,L]
+    RewriteRule ^/image$           http://10.0.0.1:3000/image [P,L]
 
     ProxyPass / http://10.0.0.1/
     ProxyPassReverse / http://10.0.0.1/

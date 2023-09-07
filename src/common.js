@@ -100,13 +100,13 @@ const getRepositoryFiles = async ({ type, repository, ref, filesURL }) => {
   let url
   let getLinks
   let links
+  ref = ref.replace(
+    /refs\/(heads|tags)\//,
+    ""
+  )
 
   if (type === "github") {
-    url = `https://api.github.com/repos/${repository}/contents/?ref=${ref.replace(
-      /refs\/(heads|tags)\//,
-      ""
-    )}`
-    links = await fetchTTLFilesFromGitHubRepository(repository)
+    links = await fetchTTLFilesFromGitHubRepository(repository, "", ref)
   }
 
   if (type === "gitlab") {
@@ -126,13 +126,15 @@ const getRepositoryFiles = async ({ type, repository, ref, filesURL }) => {
   return verifyFiles(links)
 }
 
-async function fetchTTLFilesFromGitHubRepository(repository, path = '') {
-  const response = await fetch(`https://api.github.com/repos/${repository}/contents/${path}`);
+async function fetchTTLFilesFromGitHubRepository(repository, path = '', ref = '') {
+  const response = await fetch(`https://api.github.com/repos/${repository}/contents/${path}?` + new URLSearchParams({
+    ref: ref
+  }));
   const contents = await response.json();
   let ttlFiles = formatGitHubFiles(contents)
   const subDirectories = contents.filter(file => file.type === 'dir');
   for (const directory of subDirectories) {
-    const subFiles = await fetchTTLFilesFromGitHubRepository(repository, directory.path);
+    const subFiles = await fetchTTLFilesFromGitHubRepository(repository, directory.path, ref);
     ttlFiles = ttlFiles.concat(subFiles);
   }
   return ttlFiles;

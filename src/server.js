@@ -10,7 +10,8 @@ const fetch = require("node-fetch")
 const {
   isValid,
   getRepositoryFiles,
-  parseHook
+  parseHook,
+  checkStdOutForError,
 } = require("./common")
 
 require("dotenv").config()
@@ -202,7 +203,7 @@ const processWebhooks = async () => {
         shell: "/bin/bash",
       })
       build.stdout.on("data", (data) => {
-        if (data.toString().toLowerCase().includes("error")) {
+        if (checkStdOutForError(data.toString().toLowerCase())) {
           webhook.log.push({
             date: new Date(),
             text: data.toString(),

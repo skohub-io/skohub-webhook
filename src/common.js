@@ -80,6 +80,17 @@ const isValid = (hook, event) => {
   return false
 }
 
+/**
+ * @param {Object} payload
+ * @param {string} SECRET
+ * @returns {string} signed payload
+*/
+const securePayload = (payload, SECRET) => {
+  const hmac = crypto.createHmac("sha1", SECRET)
+  const digest = "sha1=" + hmac.update(JSON.stringify(payload)).digest("hex")
+  return digest
+}
+
 const isSecured = (signature, payload, SECRET) => {
   // Is not secured if all the parameters are not present
   if (!signature || !payload || !SECRET) {
@@ -215,5 +226,6 @@ module.exports = {
   isSecured,
   getRepositoryFiles,
   parseHook,
-  checkStdOutForError
+  checkStdOutForError,
+  securePayload
 }

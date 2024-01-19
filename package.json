@@ -9,7 +9,8 @@
     "test:unit": "jest --forceExit unit",
     "test:int": "jest --forceExit int",
     "test:docker": "jest --forceExit docker",
-    "lint:js": "eslint src --ext .jsx,.js --quiet"
+    "lint:js": "eslint src --ext .jsx,.js --quiet",
+    "rebuild-vocabs": "node src/rebuildVocabs.js"
   },
   "repository": {
     "type": "git",

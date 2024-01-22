@@ -6,6 +6,13 @@ require("dotenv").config()
 const { SECRET, BUILD_URL } =
   process.env
 
+function protocolizeUrl(url) {
+  return url.startsWith("http")
+    ? url
+    : "https://" + url
+
+}
+
 /**
  * @typedef {Object} BuildInfo
  * @property {string} id
@@ -72,7 +79,7 @@ const sendBuildRequest = async (buildInfo) => {
     "x-github-event": "push",
   }
   try {
-    const response = await fetch(BUILD_URL, {
+    const response = await fetch(protocolizeUrl(BUILD_URL), {
       method: "POST",
       headers,
       body: JSON.stringify(payload)
@@ -82,9 +89,8 @@ const sendBuildRequest = async (buildInfo) => {
     }
     const respBody = await response.text()
     // get url from response
-    const responseUrl = respBody.substring(17).startsWith("http")
-      ? respBody.substring(17)
-      : "https://" + respBody.substring(17)
+    const responseUrl = protocolizeUrl(respBody.substring(17))
+    console.log("Build Urls:", responseUrl)
     const url = new URL(responseUrl)
     const id = url.searchParams.get("id")
 

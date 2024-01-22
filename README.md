@@ -63,6 +63,14 @@ In order to wire this up with GitHub, this has to be available to the public. Yo
 
 To restart and rebuild the service, e.g. after a `git pull` do `docker compose up --build --force-recreate`.
 
+## Rebuilding all vocabularies
+
+To rebuild all vocabularies:
+
+1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`
+1. Make sure to have built docker image:  `docker build -t skohub-webhook .`
+1. Then mount the dist folder of the webhook container and rebuilt the vocabs: `docker run --network=host -v ./dist:/app/dist skohub-webhook:latest "npm run rebuild-vocabs"`
+
 ## Connecting to our webhook server
 
 Feel free to clone https://github.com/literarymachine/skos.git to poke around. Go to https://github.com/YOUR_GITHUB_USER/skos/settings/hooks/new to set up the web hook (get in touch to receive the secret). Edit https://github.com/YOUR_GITHUB_USER/skos/edit/master/hochschulfaecher.ttl and commit the changes to master. This will trigger a build and expose it at https://test.skohub.io/YOUR_GITHUB_USER/skos/w3id.org/class/hochschulfaecher/scheme.

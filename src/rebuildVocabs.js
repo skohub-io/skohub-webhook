@@ -13,6 +13,7 @@ const { PORT, SECRET, BUILD_URL, DOCKER_IMAGE, DOCKER_TAG, PULL_IMAGE_SECRET } =
  * @property {Date} date
  * @property {string} ref
  * @property {string} repository
+ * @property {string} status
 */
 
 // get all json data from dist/build folder
@@ -31,15 +32,14 @@ const readBuildDir = async () => {
     return jsonObjects;
   } catch (err) {
     console.error('Error:', err);
-    throw err; // or handle error as needed
+    throw err;
   }
 }
 
-// map with body, ref, date, repository
-
-// create an array only containing the most recent webhook requests
 /**
+ * Create an array only containing the most recent webhook requests
  * @param {BuildInfo[]} buildInfo
+ * @returns {BuildInfo[]} sorted build information
  */
 const sortBuildInfo = (buildInfo) => {
   const reposToBuild = buildInfo.filter(b => {
@@ -93,21 +93,26 @@ const sendBuildRequest = async (buildInfo) => {
 
 //
 const checkBuildStatus = (id) => {
+  const maxAttempts = 30
+  let attempts = 0
   const getData = async () => {
     try {
       const response = fs.readFileSync(`./dist/build/${id}.json`)
+      /** @type {BuildInfo} */
       const json = JSON.parse(response)
-      // renderData(json)
-      // TODO do sth with data, check build status
       if (json.status === "complete" || json.status === "error") {
-        console.log(`ID: ${id} Finish with status: ${json.status}`)
+        console.log(`${json.repository}, ${json.ref}: Finish with status: ${json.status} (ID: ${id})`)
         return
       } else {
         throw new Error("Not completed")
       }
     } catch (error) {
+      if (attempts > maxAttempts) {
+        console.log(`${json.repository}, ${json.ref}: did not finish after ${attempts} attempts. Aborting. Error: ${error} (ID: ${id})`)
+        return
+      }
       setTimeout(() => {
-        // console.warn("error", error)
+        attempts++;
         getData()
       }, 2000)
     }

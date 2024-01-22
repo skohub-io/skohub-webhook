@@ -3,7 +3,7 @@ const path = require('path');
 const { securePayload } = require("./common.js")
 require("dotenv").config()
 
-const { PORT, SECRET, BUILD_URL, DOCKER_IMAGE, DOCKER_TAG, PULL_IMAGE_SECRET } =
+const { SECRET, BUILD_URL } =
   process.env
 
 /**
@@ -72,7 +72,7 @@ const sendBuildRequest = async (buildInfo) => {
     "x-github-event": "push",
   }
   try {
-    const response = await fetch(`http://localhost:${PORT}/build`, {
+    const response = await fetch(BUILD_URL, {
       method: "POST",
       headers,
       body: JSON.stringify(payload)
@@ -82,7 +82,10 @@ const sendBuildRequest = async (buildInfo) => {
     }
     const respBody = await response.text()
     // get url from response
-    const url = new URL(respBody.substring(17))
+    const responseUrl = respBody.substring(17).startsWith("http")
+      ? respBody.substring(17)
+      : "https://" + respBody.substring(17)
+    const url = new URL(responseUrl)
     const id = url.searchParams.get("id")
 
     return id

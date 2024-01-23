@@ -69,7 +69,7 @@ To rebuild all vocabularies:
 
 1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`
 1. Make sure to have built docker image:  `docker build -t skohub-webhook .`
-1. Then mount the dist folder of the webhook container and rebuilt the vocabs: `docker run --network=host -v ./dist:/app/dist skohub-webhook:latest "npm run rebuild-vocabs"`
+1. Then mount the dist folder of the webhook container and rebuilt the vocabs: `docker run -v ./dist:/app/dist skohub-webhook:latest "npm run rebuild-vocabs"`
 
 ## Connecting to our webhook server
 

@@ -60,6 +60,36 @@ const sortBuildInfo = (buildInfo) => {
 }
 
 /**
+ * @param {string} repository
+ * @param {string} ref
+ */
+async function checkIfBranchExists(repository, ref) {
+  const branchName = ref.split("/").slice(-1)[0]
+  const result = await fetch(`https://api.github.com/repos/${repository}/branches`)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      const branchExists = data.some(branch => branch.name === branchName);
+      if (branchExists) {
+        console.log(`Branch "${branchName}" exists!`);
+        return true
+      } else {
+        console.log(`Branch "${branchName}" does not exist.`);
+        return false
+      }
+    })
+    .catch(error => {
+      console.error(`Fetch error for repo ${repository} and branch ${branchName}, ${error}`);
+      return false
+    });
+  return result
+}
+
+/**
  * send fetch request to webhook
  * @param {BuildInfo} buildInfo
  * @returns {string} buildId
@@ -94,30 +124,41 @@ const sendBuildRequest = async (buildInfo) => {
     const url = new URL(responseUrl)
     const id = url.searchParams.get("id")
 
-    return id
+    return {
+      id,
+      repository: buildInfo.repository,
+      ref: buildInfo.ref
+    }
   } catch (error) {
     console.error("Error sending request", error)
   }
 }
 
-//
-const checkBuildStatus = (id) => {
+/**
+ * @param {{
+ * id: string
+ * repository: string
+ * ref: string
+ * }} buildInfo
+ */
+const checkBuildStatus = (buildInfo) => {
   const maxAttempts = 30
   let attempts = 0
+  let json = {}
   const getData = async () => {
     try {
-      const response = fs.readFileSync(`./dist/build/${id}.json`)
+      const response = fs.readFileSync(`./dist/build/${buildInfo.id}.json`)
       /** @type {BuildInfo} */
-      const json = JSON.parse(response)
+      json = JSON.parse(response)
       if (json.status === "complete" || json.status === "error") {
-        console.log(`${json.repository}, ${json.ref}: Finish with status: ${json.status} (ID: ${id})`)
+        console.log(`${json.repository}, ${json.ref}: Finish with status: ${json.status} (ID: ${buildInfo.id})`)
         return
       } else {
         throw new Error("Not completed")
       }
     } catch (error) {
       if (attempts > maxAttempts) {
-        console.log(`${json.repository}, ${json.ref}: did not finish after ${attempts} attempts. Aborting. Error: ${error} (ID: ${id})`)
+        console.log(`${buildInfo.repository}, ${buildInfo.ref}: did not finish after ${attempts} attempts. Aborting. Error: ${error} (ID: ${buildInfo.id})`)
         return
       }
       setTimeout(() => {
@@ -132,8 +173,10 @@ const checkBuildStatus = (id) => {
 const main = async () => {
   const buildInfo = await readBuildDir()
   const sortedBuildInfo = sortBuildInfo(buildInfo)
-  const buildIds = await Promise.all(sortedBuildInfo.map((b) => sendBuildRequest(b)))
-  buildIds.forEach(id => checkBuildStatus(id))
+  const branchesExisting = await Promise.all(sortedBuildInfo.map(b => checkIfBranchExists(b.repository, b.ref)))
+  const cleanedBuildInfo = sortedBuildInfo.filter((_, i) => branchesExisting[i])
+  const newBuildInfo = await Promise.all(cleanedBuildInfo.map((b) => sendBuildRequest(b)))
+  newBuildInfo.forEach(info => checkBuildStatus(info))
 }
 
 main()

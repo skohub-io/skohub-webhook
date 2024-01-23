@@ -5,7 +5,6 @@ require("dotenv").config()
 
 const { SECRET, BUILD_URL, REBUILD_MAX_ATTEMPTS } = process.env
 const args = process.argv.slice(2);
-console.log(args); // ['arg1', 'arg2', 'arg3']
 
 function protocolizeUrl(url) {
   return url.startsWith("http")

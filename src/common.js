@@ -1,6 +1,16 @@
 const crypto = require("crypto")
 const fetch = require("node-fetch")
 
+require("dotenv").config()
+
+const { GITHUB_TOKEN } = process.env
+const gitHubApiHeaders = GITHUB_TOKEN
+  ? {
+    "Authorization": `Bearer ${GITHUB_TOKEN}`,
+    "X-GitHub-Api-Version": "2022-11-28"
+  }
+  : {}
+
 const getHookGitHub = (headers, payload, SECRET) => {
   const obj = {
     type: "github",
@@ -140,7 +150,8 @@ const getRepositoryFiles = async ({ type, repository, ref, filesURL }) => {
 async function fetchTTLFilesFromGitHubRepository(repository, path = '', ref = '') {
   const response = await fetch(`https://api.github.com/repos/${repository}/contents/${path}?` + new URLSearchParams({
     ref: ref
-  }));
+  }),
+    { headers: gitHubApiHeaders });
   const contents = await response.json();
   let ttlFiles = formatGitHubFiles(contents)
   const subDirectories = contents.filter(file => file.type === 'dir');
@@ -227,5 +238,6 @@ module.exports = {
   getRepositoryFiles,
   parseHook,
   checkStdOutForError,
-  securePayload
+  securePayload,
+  gitHubApiHeaders
 }

@@ -1,10 +1,11 @@
 const fs = require("fs-extra")
 const path = require('path');
-const { securePayload } = require("./common.js")
+const { securePayload, gitHubApiHeaders } = require("./common.js")
 require("dotenv").config()
 
-const { SECRET, BUILD_URL } =
-  process.env
+const { SECRET, BUILD_URL, REBUILD_MAX_ATTEMPTS } = process.env
+const args = process.argv.slice(2);
+console.log(args); // ['arg1', 'arg2', 'arg3']
 
 function protocolizeUrl(url) {
   return url.startsWith("http")
@@ -65,7 +66,9 @@ const sortBuildInfo = (buildInfo) => {
  */
 async function checkIfBranchExists(repository, ref) {
   const branchName = ref.split("/").slice(-1)[0]
-  const result = await fetch(`https://api.github.com/repos/${repository}/branches`)
+  const result = await fetch(`https://api.github.com/repos/${repository}/branches`, {
+    headers: gitHubApiHeaders
+  })
     .then(response => {
       if (!response.ok) {
         throw new Error('Network response was not ok');
@@ -75,7 +78,7 @@ async function checkIfBranchExists(repository, ref) {
     .then(data => {
       const branchExists = data.some(branch => branch.name === branchName);
       if (branchExists) {
-        console.log(`Branch "${branchName}" exists!`);
+        console.log(`${repository}/${branchName} exists!`);
         return true
       } else {
         console.log(`Branch "${branchName}" does not exist.`);
@@ -131,6 +134,11 @@ const sendBuildRequest = async (buildInfo) => {
     }
   } catch (error) {
     console.error("Error sending request", error)
+    return {
+      id: null,
+      repository: buildInfo.repository,
+      ref: buildInfo.ref
+    }
   }
 }
 
@@ -142,7 +150,7 @@ const sendBuildRequest = async (buildInfo) => {
  * }} buildInfo
  */
 const checkBuildStatus = (buildInfo) => {
-  const maxAttempts = 30
+  const maxAttempts = REBUILD_MAX_ATTEMPTS ? Number(REBUILD_MAX_ATTEMPTS) : 30
   let attempts = 0
   let json = {}
   const getData = async () => {
@@ -157,13 +165,19 @@ const checkBuildStatus = (buildInfo) => {
         throw new Error("Not completed")
       }
     } catch (error) {
-      if (attempts > maxAttempts) {
+      if (attempts > maxAttempts || !buildInfo.id) {
         console.log(`${buildInfo.repository}, ${buildInfo.ref}: did not finish after ${attempts} attempts. Aborting. Error: ${error} (ID: ${buildInfo.id})`)
         return
       }
       setTimeout(() => {
-        attempts++;
-        getData()
+        if (json?.status === "processing") {
+          // we just keep trying to get the data
+          getData()
+        } else {
+          // increase attempts as it seems to be somewhere in between defined statuses
+          attempts++;
+          getData()
+        }
       }, 2000)
     }
   }
@@ -171,12 +185,24 @@ const checkBuildStatus = (buildInfo) => {
 }
 
 const main = async () => {
-  const buildInfo = await readBuildDir()
-  const sortedBuildInfo = sortBuildInfo(buildInfo)
-  const branchesExisting = await Promise.all(sortedBuildInfo.map(b => checkIfBranchExists(b.repository, b.ref)))
-  const cleanedBuildInfo = sortedBuildInfo.filter((_, i) => branchesExisting[i])
-  const newBuildInfo = await Promise.all(cleanedBuildInfo.map((b) => sendBuildRequest(b)))
-  newBuildInfo.forEach(info => checkBuildStatus(info))
+  if (args.length) {
+    const buildInfo = {
+      repository: args[0],
+      ref: "refs/heads/" + args[1]
+    }
+    const branchesExisting = await Promise.all([buildInfo].map(b => checkIfBranchExists(b.repository, b.ref)))
+    const cleanedBuildInfo = [buildInfo].filter((_, i) => branchesExisting[i])
+    const newBuildInfo = await Promise.all(cleanedBuildInfo.map((b) => sendBuildRequest(b)))
+    newBuildInfo.forEach(info => checkBuildStatus(info))
+
+  } else {
+    const buildInfo = await readBuildDir()
+    const sortedBuildInfo = sortBuildInfo(buildInfo)
+    const branchesExisting = await Promise.all(sortedBuildInfo.map(b => checkIfBranchExists(b.repository, b.ref)))
+    const cleanedBuildInfo = sortedBuildInfo.filter((_, i) => branchesExisting[i])
+    const newBuildInfo = await Promise.all(cleanedBuildInfo.map((b) => sendBuildRequest(b)))
+    newBuildInfo.forEach(info => checkBuildStatus(info))
+  }
 }
 
 main()

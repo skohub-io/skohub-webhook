@@ -20,6 +20,8 @@ The `.env` file contains configuration details used by the static site generator
 - `DOCKER_IMAGE`: The docker image which should be used to build the vocabulary, defaults to `skohub/skohub-vocabs-docker`
 - `DOCKER_TAG`: The docker tag for the `DOCKER_IMAGE`, defaults to `latest`
 - `PULL_IMAGE_SECRET`: The secret needed for the `/image` endpoint to trigger the pull of new images via webhook.
+- `GITHUB_TOKEN`: In order to avoid api rate limits when using GitHub, provide a personal access token.
+- `REBUILD_MAX_ATTEMPTS`: Max attempts trying to check the build status of the vocabulary. The build status is checked every 2 seconds, so 30 attempts make 60 seconds of waiting for the build status.
 
 ## How does it work?
 
@@ -62,6 +64,26 @@ In order to wire this up with GitHub, this has to be available to the public. Yo
 ## Restarting or Rebuilding the webhook server
 
 To restart and rebuild the service, e.g. after a `git pull` do `docker compose up --build --force-recreate`.
+
+## Rebuilding vocabularies
+
+**Notice:**
+
+During the rebuild of all hosted vocabularies, the service might make a lot of requests to the GitHub Api.
+Depending on the number of hosted vocabularies, you might run into API rate limits.
+To avoid this you can provide a [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) in `.env` file (see above).
+You also might want to increase the number of `REBUILD_MAX_ATTEMPTS` (to something like 300 or 3000), because rebuilds might take some time, depending on your machine, network, number of vocabularies etc.
+
+To rebuild all vocabularies:
+
+1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`
+1. Make sure to have built docker image:  `docker build -t skohub-webhook .`
+1. Then mount the dist folder of the webhook container and rebuilt the vocabs: `docker run -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest "npm run rebuild-vocabs"`
+
+
+To rebuild only a specific vocabulary you can provide the GitHub repository and the branch to build:
+
+`docker run -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest npm run rebuild-vocabs -- test/test-vocabs main`
 
 ## Connecting to our webhook server
 

@@ -25,8 +25,7 @@ RUN chown -R node:node /app
 COPY --chown=node:node .env.example .env
 COPY --chown=node:node . .
 
-# don't run prepare step with husky
-RUN npm pkg delete scripts.prepare
+RUN npm config set update-notifier false
 
 RUN npm i --only=production
 

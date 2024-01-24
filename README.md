@@ -67,6 +67,13 @@ To restart and rebuild the service, e.g. after a `git pull` do `docker compose u
 
 ## Rebuilding vocabularies
 
+**Notice:**
+
+During the rebuild of all hosted vocabularies, the service might make a lot of requests to the GitHub Api.
+Depending on the number of hosted vocabularies, you might run into API rate limits.
+To avoid this you can provide a [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) in `.env` file (see above).
+You also might want to increase the number of `REBUILD_MAX_ATTEMPTS` (to something like 300 or 3000), because rebuilds might take some time, depending on your machine, network, number of vocabularies etc.
+
 To rebuild all vocabularies:
 
 1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`

@@ -1,6 +1,8 @@
 const fs = require("fs-extra")
 const path = require('path');
 const { securePayload, gitHubApiHeaders } = require("./common.js")
+const { readBuildDir, sortBuildInfo, checkIfBranchExists } = require("./commonChoreForVocabs.js")
+const types = require("./types.js")
 require("dotenv").config()
 
 const { SECRET, BUILD_URL, REBUILD_MAX_ATTEMPTS } = process.env
@@ -10,90 +12,12 @@ function protocolizeUrl(url) {
   return url.startsWith("http")
     ? url
     : "https://" + url
-
 }
 
-/**
- * @typedef {Object} BuildInfo
- * @property {string} id
- * @property {Object} body
- * @property {Date} date
- * @property {string} ref
- * @property {string} repository
- * @property {string} status
-*/
-
-// get all json data from dist/build folder
-const readBuildDir = async () => {
-  const directoryPath = './dist/build';
-  try {
-    const files = await fs.readdir(directoryPath);
-    const jsonFiles = files.filter(file => path.extname(file) === '.json');
-
-    const jsonObjects = await Promise.all(jsonFiles.map(async file => {
-      const filePath = path.join(directoryPath, file);
-      const data = await fs.readFile(filePath, 'utf8');
-      return JSON.parse(data);
-    }));
-
-    return jsonObjects;
-  } catch (err) {
-    console.error('Error:', err);
-    throw err;
-  }
-}
-
-/**
- * Create an array only containing the most recent webhook requests
- * @param {BuildInfo[]} buildInfo
- * @returns {BuildInfo[]} sorted build information
- */
-const sortBuildInfo = (buildInfo) => {
-  const reposToBuild = buildInfo.filter(b => {
-    if (buildInfo.some(e => e.ref === b.ref && e.repository === b.repository && new Date(e.date).getTime() > new Date(b.date).getTime())) {
-      return false
-    } else if (buildInfo.some(e => e.ref === b.ref && e.repository === b.repository && new Date(e.date).getTime() <= new Date(b.date).getTime())) {
-      return true
-    }
-  })
-  return reposToBuild
-}
-
-/**
- * @param {string} repository
- * @param {string} ref
- */
-async function checkIfBranchExists(repository, ref) {
-  const branchName = ref.split("/").slice(-1)[0]
-  const result = await fetch(`https://api.github.com/repos/${repository}/branches`, {
-    headers: gitHubApiHeaders
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      return response.json();
-    })
-    .then(data => {
-      const branchExists = data.some(branch => branch.name === branchName);
-      if (branchExists) {
-        console.log(`${repository}/${branchName} exists!`);
-        return true
-      } else {
-        console.log(`Branch "${branchName}" does not exist.`);
-        return false
-      }
-    })
-    .catch(error => {
-      console.error(`Fetch error for repo ${repository} and branch ${branchName}, ${error}`);
-      return false
-    });
-  return result
-}
 
 /**
  * send fetch request to webhook
- * @param {BuildInfo} buildInfo
+ * @param {types.BuildInfo} buildInfo
  * @returns {string} buildId
  */
 const sendBuildRequest = async (buildInfo) => {

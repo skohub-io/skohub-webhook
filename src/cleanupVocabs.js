@@ -37,8 +37,6 @@ const cleanupVocabularies = async (dry = false) => {
       try {
         await fs.rm(p, { recursive: true, force: false })
       } catch (error) {
-        console.log("caught")
-        console.error(error)
         fileErrors.push([[p], error])
       }
     }))
@@ -57,8 +55,6 @@ const cleanupVocabularies = async (dry = false) => {
       try {
         await fs.rm(p, { recursive: true, force: false })
       } catch (error) {
-        console.log("caught")
-        console.error(error)
         fileErrors.push([[p], error])
       }
     })

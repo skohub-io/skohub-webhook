@@ -10,7 +10,9 @@
     "test:int": "jest --forceExit int",
     "test:docker": "jest --forceExit docker",
     "lint:js": "eslint src --ext .jsx,.js --quiet",
-    "rebuild-vocabs": "node src/rebuildVocabs.js"
+    "rebuild-vocabs": "node src/rebuildVocabs.js",
+    "cleanup-dist:dry": "node src/cleanupVocabs.js --dry",
+    "cleanup-dist": "node src/cleanupVocabs.js"
   },
   "repository": {
     "type": "git",

@@ -2,6 +2,7 @@ const fs = require("fs-extra")
 const path = require('path');
 const { gitHubApiHeaders } = require("./common.js")
 const types = require("./types.js")
+const logger = require("./logger.js")
 
 
 /** get all json data from dist/build folder
@@ -21,7 +22,7 @@ const readBuildDir = async () => {
 
     return jsonObjects;
   } catch (err) {
-    console.error('Error:', err);
+    logger.error(`Error: ${err}`);
     throw err;
   }
 }
@@ -60,15 +61,15 @@ async function checkIfBranchExists(repository, ref) {
     .then(data => {
       const branchExists = data.some(branch => branch.name === branchName);
       if (branchExists) {
-        console.log(`${repository}/${branchName} exists!`);
+        // console.log(`${repository}/${branchName} exists!`);
         return true
       } else {
-        console.log(`Branch "${branchName}" does not exist.`);
+        logger.error(`Branch "${branchName}" does not exist.`);
         return false
       }
     })
     .catch(error => {
-      console.error(`Fetch error for repo ${repository} and branch ${branchName}, ${error}`);
+      logger.error(`Fetch error for repo ${repository} and branch ${branchName}, ${error}`);
       return false
     });
   return result

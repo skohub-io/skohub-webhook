@@ -7,6 +7,9 @@ const fs = require("fs-extra")
 const { exec, execSync } = require("child_process")
 const fetch = require("node-fetch")
 
+// credits: https://quickref.me/strip-ansi-codes-from-a-string.html
+const stripAnsiCodes = str => str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+
 const {
   isValid,
   getRepositoryFiles,
@@ -206,7 +209,7 @@ const processWebhooks = async () => {
         if (checkStdOutForError(data.toString().toLowerCase())) {
           webhook.log.push({
             date: new Date(),
-            text: data.toString(),
+            text: stripAnsiCodes(data.toString()),
             warning: true,
           })
           webhook.status = "error"
@@ -219,8 +222,9 @@ const processWebhooks = async () => {
         console.log("gatsbyLog: " + data.toString())
         webhook.log.push({
           date: new Date(),
-          text: data.toString(),
+          text: stripAnsiCodes(data.toString()),
         })
+
         fs.writeFile(
           `${__dirname}/../dist/build/${webhook.id}.json`,
           JSON.stringify(webhook)
@@ -244,7 +248,7 @@ const processWebhooks = async () => {
         ) {
           webhook.log.push({
             date: new Date(),
-            text: data.toString(),
+            text: stripAnsiCodes(data.toString()),
             warning: true,
           })
           webhook.status = "error"

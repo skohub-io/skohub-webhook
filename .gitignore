@@ -3,5 +3,8 @@ public/
 dist/**/*.json
 .env
 
+# Logs
+log.log
+
 # Code Editor
 .vscode/launch.json

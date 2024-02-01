@@ -3,6 +3,9 @@ const path = require('path');
 const { gitHubApiHeaders } = require("./common.js")
 const types = require("./types.js")
 const logger = require("./logger.js")
+require("dotenv").config()
+
+const { VOCABS_URL } = process.env
 
 
 /** get all json data from dist/build folder
@@ -75,9 +78,22 @@ async function checkIfBranchExists(repository, ref) {
   return result
 }
 
+const getCurrentVocabs = async () => {
+  const buildInfo = await readBuildDir()
+  const sortedBuildInfo = sortBuildInfo(buildInfo).filter(b => b.status === "complete")
+  const currentVocabs = sortedBuildInfo.map(b => {
+    return {
+      repository: b.repository,
+      vocabulary: `${VOCABS_URL.endsWith("/") ? VOCABS_URL : VOCABS_URL + "/"}${b.repository}/${b.ref.replace("refs/", "")}/`,
+      date: b.date,
+    }
+  })
+  return currentVocabs
+}
 
 module.exports = {
   readBuildDir,
   sortBuildInfo,
-  checkIfBranchExists
+  checkIfBranchExists,
+  getCurrentVocabs
 }

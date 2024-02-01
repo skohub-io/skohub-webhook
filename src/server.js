@@ -17,6 +17,8 @@ const {
   checkStdOutForError,
 } = require("./common")
 
+const { getCurrentVocabs } = require("./commonChoreForVocabs")
+
 require("dotenv").config()
 require("colors")
 
@@ -53,6 +55,14 @@ const getFile = async (file, repository) => {
     console.error(error)
   }
 }
+
+router.get("/currentVocabs", async (ctx) => {
+  const currentVocabs = await getCurrentVocabs()
+  ctx.status = 200
+  ctx.body = currentVocabs
+
+  return
+})
 
 router.post("/build", async (ctx) => {
   const { body, headers } = ctx.request

@@ -1,5 +1,6 @@
 const fs = require("fs-extra")
 const { readBuildDir, sortBuildInfo, checkIfBranchExists } = require("./commonChoreForVocabs.js")
+const logger = require("./logger.js")
 const args = process.argv.slice(2);
 const types = require("./types.js")
 
@@ -19,17 +20,16 @@ const buildFilePathsForBuildLog = (buildInfo) => {
 
 const cleanupVocabularies = async (dry = false) => {
   if (dry) {
-    console.log("Dry run, won't delete anything.")
+    logger.info("Dry run, won't delete anything.")
   }
   const buildInfo = await readBuildDir()
   const sortedBuildInfo = sortBuildInfo(buildInfo)
   const branchesExisting = await Promise.all(sortedBuildInfo.map(b => checkIfBranchExists(b.repository, b.ref)))
   const branchesNotExisting = sortedBuildInfo.filter((_, i) => !branchesExisting[i])
-  // console.log(branchesNotExisting)
   // build paths to be removed
   const filePathsToBeDeleted = branchesNotExisting.map(buildFilePaths)
-  console.log("Will delete ", filePathsToBeDeleted.length, "vocabulary branches.")
-  console.log("Will delete these paths (vocabularies): \n", filePathsToBeDeleted)
+  logger.info(`Will delete ${filePathsToBeDeleted.length} vocabulary branches.`)
+  logger.info(`Will delete these paths (vocabularies): \n ${filePathsToBeDeleted}`)
   const fileErrors = []
   if (!dry) {
     // rm paths
@@ -47,8 +47,8 @@ const cleanupVocabularies = async (dry = false) => {
     .filter(b => branchesNotExisting.
       some(e => (e.repository === b.repository && e.ref === b.ref)))
   const buildInfoFilePathsToBeDeleted = buildInfoToBeDeleted.map(buildFilePathsForBuildLog)
-  console.log("Will delete ", buildInfoToBeDeleted.length, "build logs.")
-  console.log("Will delete these paths (build logs): \n", buildInfoFilePathsToBeDeleted)
+  logger.info(`Will delete ${buildInfoToBeDeleted.length} build logs.`)
+  logger.info(`Will delete these paths (build logs): \n ${buildInfoFilePathsToBeDeleted}`)
   // rm that logs
   if (!dry) {
     await Promise.all(buildInfoFilePathsToBeDeleted.map(async (p) => {
@@ -61,16 +61,15 @@ const cleanupVocabularies = async (dry = false) => {
     )
   }
   if (fileErrors.length) {
-    console.log("Encoutered errors deleting:")
+    logger.info("Encoutered errors deleting:")
     fileErrors.forEach(e => {
-      console.log(`Path: ${e[0]}, error: ${e[1]}`)
+      logger.info(`Path: ${e[0]}, error: ${e[1]}`)
     })
   }
 }
 
 const main = async () => {
   if (args.length) {
-    console.log(args[0])
     if (args[0] === "--dry") {
       cleanupVocabularies(true)
     } else {

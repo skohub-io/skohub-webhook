@@ -8,9 +8,10 @@ A webhook server that allows triggering the build SKOS vocabularies to nice HTML
 
 ## Set up
 
-    $ git clone https://github.com/skohub-io/skohub-webhook.git
-    $ cd skohub-webhook
-    $ cp .env.example .env
+    git clone https://github.com/skohub-io/skohub-webhook.git
+    cd skohub-webhook
+    cp .env.example .env
+
 
 The `.env` file contains configuration details used by the static site generator and the webhook server:
 
@@ -92,13 +93,28 @@ You also might want to increase the number of `REBUILD_MAX_ATTEMPTS` (to somethi
 To rebuild all vocabularies:
 
 1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`
-1. Make sure to have built docker image:  `docker build -t skohub-webhook .`
-1. Then mount the dist folder of the webhook container and rebuilt the vocabs: `docker run -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest "npm run rebuild-vocabs"`
+1. Make sure to have a recent docker image:  `docker build -t skohub-webhook .`
+1. Then mount the dist folder and the `.env` file and rebuilt the vocabs: `docker run -v ./log.log:/app/log.log -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest "npm run rebuild-vocabs"`
 
 
 To rebuild only a specific vocabulary you can provide the GitHub repository and the branch to build:
 
-`docker run -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest npm run rebuild-vocabs -- test/test-vocabs main`
+`docker run -v ./log.log:/app/log.log -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest npm run rebuild-vocabs -- test/test-vocabs main`
+
+## Cleaning up vocabularies
+
+From time to time you might want to clean up the `dist` folder and the build logs.
+Since we build vocabuilaries for every branch, but do not get notified when a branch is deleted, a regular cleanup is sensible.
+To clean up we provide a cleanup script that checks for still active branches on GitHub for currently served vocabularies by parsing the build logs.
+If the branch does not exist anymore the respective folder will be removed from `dist` and the build logs will be cleaned up as well.
+
+To clean up do this:
+
+1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`
+1. Make sure to have a recent docker image:  `docker build -t skohub-webhook .`
+1. Do a dry run first and check the output: `docker run -v ./log.log:/app/log.log -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest "npm run cleanup-dist:dry"`
+1. Cleanup, if everything looks ok: `docker run -v ./log.log:/app/log.log -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest "npm run cleanup-dist"`
+
 
 ## Connecting to our webhook server
 

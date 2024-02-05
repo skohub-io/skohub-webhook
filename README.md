@@ -42,7 +42,7 @@ The request is triggered by a GitHub Webhook when the [`docker` workflow_job](ht
 You can set up the webhook in the skohub-vocabs repo and choose "Workflow jobs" as event type.
 The secret has to match the `PULL_IMAGE_SECRET` from `.env`.
 
-### `/currentVocabs`
+### `/vocabs`
 
 Returns a list of vocabularies that are currently served, e.g.
 

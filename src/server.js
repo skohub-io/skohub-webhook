@@ -56,7 +56,7 @@ const getFile = async (file, repository) => {
   }
 }
 
-router.get("/currentVocabs", async (ctx) => {
+router.get("/vocabs", async (ctx) => {
   const currentVocabs = await getCurrentVocabs()
   ctx.status = 200
   ctx.body = currentVocabs

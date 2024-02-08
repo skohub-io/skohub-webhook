@@ -1,4 +1,3 @@
-
 /**
  * @typedef {Object} BuildInfo
  * @property {string} id

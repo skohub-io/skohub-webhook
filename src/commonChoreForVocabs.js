@@ -5,7 +5,7 @@ const types = require("./types.js")
 const logger = require("./logger.js")
 require("dotenv").config()
 
-const { VOCABS_URL } = process.env
+const { VOCABS_URL, BUILD_URL } = process.env
 
 
 /** get all json data from dist/build folder
@@ -83,9 +83,12 @@ const getCurrentVocabs = async () => {
   const sortedBuildInfo = sortBuildInfo(buildInfo).filter(b => b.status === "complete")
   const currentVocabs = sortedBuildInfo.map(b => {
     return {
-      repository: b.repository,
+      repository: b.type === "github" ? `https://github.com/${b.repository}` : b.repository,
       vocabulary: `${VOCABS_URL.endsWith("/") ? VOCABS_URL : VOCABS_URL + "/"}${b.repository}/${b.ref.replace("refs/", "")}/`,
-      date: b.date,
+      latestBuild: {
+        timestamp: b.date,
+        id: `${BUILD_URL}?id=${b.id}`
+      }
     }
   })
   return currentVocabs

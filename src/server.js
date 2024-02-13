@@ -7,12 +7,17 @@ const fs = require("fs-extra")
 const { exec, execSync } = require("child_process")
 const fetch = require("node-fetch")
 
+// credits: https://quickref.me/strip-ansi-codes-from-a-string.html
+const stripAnsiCodes = str => str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+
 const {
   isValid,
   getRepositoryFiles,
   parseHook,
   checkStdOutForError,
 } = require("./common")
+
+const { getCurrentVocabs } = require("./commonChoreForVocabs")
 
 require("dotenv").config()
 require("colors")
@@ -50,6 +55,14 @@ const getFile = async (file, repository) => {
     console.error(error)
   }
 }
+
+router.get("/vocabs", async (ctx) => {
+  const currentVocabs = await getCurrentVocabs()
+  ctx.status = 200
+  ctx.body = currentVocabs
+
+  return
+})
 
 router.post("/build", async (ctx) => {
   const { body, headers } = ctx.request
@@ -206,7 +219,7 @@ const processWebhooks = async () => {
         if (checkStdOutForError(data.toString().toLowerCase())) {
           webhook.log.push({
             date: new Date(),
-            text: data.toString(),
+            text: stripAnsiCodes(data.toString()),
             warning: true,
           })
           webhook.status = "error"
@@ -219,8 +232,9 @@ const processWebhooks = async () => {
         console.log("gatsbyLog: " + data.toString())
         webhook.log.push({
           date: new Date(),
-          text: data.toString(),
+          text: stripAnsiCodes(data.toString()),
         })
+
         fs.writeFile(
           `${__dirname}/../dist/build/${webhook.id}.json`,
           JSON.stringify(webhook)
@@ -244,7 +258,7 @@ const processWebhooks = async () => {
         ) {
           webhook.log.push({
             date: new Date(),
-            text: data.toString(),
+            text: stripAnsiCodes(data.toString()),
             warning: true,
           })
           webhook.status = "error"

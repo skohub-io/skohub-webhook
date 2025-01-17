@@ -2,6 +2,7 @@ version: '3'
 
 services:
   webhook:
+    init: true
     build: .
     runtime: sysbox-runc
     restart: always

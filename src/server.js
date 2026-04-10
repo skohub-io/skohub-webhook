@@ -241,24 +241,27 @@ const processWebhooks = async () => {
         )
       })
       build.stderr.on("data", (data) => {
-        console.log("gatsbyError: " + data.toString())
+        const stderrText = data.toString()
+        const normalized = stderrText.toLowerCase()
+
+        console.log("gatsbyError: " + stderrText)
         if (
-          !data.toString().includes("Deprecation") &&
-          !data.toString().includes("warning") &&
-          !data.toString().includes("lscpu") &&
-          !data.toString().includes("Unable to find image") &&
-          !data.toString().includes("Pulling") &&
-          !data.toString().includes("Waiting") &&
-          !data.toString().includes("Already exists") &&
-          !data.toString().includes("Download complete") &&
-          !data.toString().includes("Verifying Checksum") &&
-          !data.toString().includes("Pull complete") &&
-          !data.toString().includes("Digest:") &&
-          !data.toString().includes("Status: Downloaded newer image")
+          !normalized.includes("deprecation") &&
+          !normalized.includes("warning") &&
+          !normalized.includes("lscpu") &&
+          !normalized.includes("unable to find image") &&
+          !normalized.includes("pulling") &&
+          !normalized.includes("waiting") &&
+          !normalized.includes("already exists") &&
+          !normalized.includes("download complete") &&
+          !normalized.includes("verifying checksum") &&
+          !normalized.includes("pull complete") &&
+          !normalized.includes("digest:") &&
+          !normalized.includes("status: downloaded newer image")
         ) {
           webhook.log.push({
             date: new Date(),
-            text: stripAnsiCodes(data.toString()),
+            text: stripAnsiCodes(stderrText),
             warning: true,
           })
           webhook.status = "error"

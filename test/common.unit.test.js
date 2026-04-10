@@ -7,6 +7,7 @@ const {
   isValid,
   isSecured,
   getRepositoryFiles,
+  checkStdOutForError,
 } = require("../src/common")
 
 describe("isSecured", () => {
@@ -25,6 +26,24 @@ describe("isSecured", () => {
 
   test("Does not crash if the parameters are not present", () => {
     expect(isSecured(null, null, null)).toBe(false)
+  })
+})
+
+describe("checkStdOutForError", () => {
+  test("Returns false for a warning-only message", () => {
+    expect(
+      checkStdOutForError("WARNING: This is only a warning and not an error")
+    ).toBe(false)
+  })
+
+  test("Returns false for SHACL warning blocks", () => {
+    expect(
+      checkStdOutForError("-----------warning--------------\nSome warning details")
+    ).toBe(false)
+  })
+
+  test("Returns true for error messages", () => {
+    expect(checkStdOutForError("ERROR: Something failed")).toBe(true)
   })
 })
 

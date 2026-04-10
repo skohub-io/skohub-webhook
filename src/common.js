@@ -219,14 +219,19 @@ const parseHook = (headers, body, secret) => {
 }
 
 function checkStdOutForError(text) {
-  // SHACL Warning message
-  if (text.includes("-----------warning--------------")) {
+  if (!text || typeof text !== "string") {
     return false
-  } else if (text.includes("error")) {
-    return true
   }
-}
 
+  const lower = text.toLowerCase()
+
+  // Ignore warnings entirely. Only treat real error output as an error.
+  if (lower.includes("-----------warning--------------") || lower.includes("warning")) {
+    return false
+  }
+
+  return lower.includes("error")
+}
 
 module.exports = {
   getHeaders,

@@ -14,7 +14,6 @@ const {
   isValid,
   getRepositoryFiles,
   parseHook,
-  checkStdOutForError,
 } = require("./common")
 
 const { getCurrentVocabs } = require("./commonChoreForVocabs")
@@ -216,19 +215,6 @@ const processWebhooks = async () => {
         shell: "/bin/bash",
       })
       build.stdout.on("data", (data) => {
-        if (checkStdOutForError(data.toString().toLowerCase())) {
-          webhook.log.push({
-            date: new Date(),
-            text: stripAnsiCodes(data.toString()),
-            warning: true,
-          })
-          webhook.status = "error"
-          fs.writeFile(
-            `${__dirname}/../dist/build/${webhook.id}.json`,
-            JSON.stringify(webhook)
-          )
-        }
-
         console.log("gatsbyLog: " + data.toString())
         webhook.log.push({
           date: new Date(),
@@ -242,6 +228,9 @@ const processWebhooks = async () => {
       })
       build.stderr.on("data", (data) => {
         console.log("gatsbyError: " + data.toString())
+        // Surface stderr in the log marked as a warning, but do not infer
+        // build success/failure from it — the exit code below is authoritative.
+        // Filters out routine docker-pull progress chatter so it doesn't pollute the log.
         if (
           !data.toString().includes("Deprecation") &&
           !data.toString().includes("warning") &&
@@ -261,14 +250,21 @@ const processWebhooks = async () => {
             text: stripAnsiCodes(data.toString()),
             warning: true,
           })
-          webhook.status = "error"
           fs.writeFile(
             `${__dirname}/../dist/build/${webhook.id}.json`,
             JSON.stringify(webhook)
           )
         }
       })
-      build.on("exit", () => {
+      build.on("exit", (code) => {
+        if (code !== 0) {
+          webhook.status = "error"
+          webhook.log.push({
+            date: new Date(),
+            text: `Build process exited with code ${code}`,
+            warning: true,
+          })
+        }
         try {
           fs.readdirSync(`${__dirname}/../data/`)
             .filter((filename) => filename !== ".gitignore")

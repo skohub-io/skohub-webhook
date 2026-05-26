@@ -1,0 +1,19 @@
+[Unit]
+Description=SkoHub Webhook
+After=network.target
+
+[Service]
+Type=simple
+User=skohub
+Group=skohub
+WorkingDirectory=/opt/skohub-webhook
+
+Environment=HOME=/usr/local/skohub
+Environment=NODE_ENV=production
+
+ExecStart=/bin/bash -c 'source /usr/local/skohub/.nvm/nvm.sh && nvm use 22 && npm run start'
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

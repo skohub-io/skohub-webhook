@@ -59,16 +59,16 @@ Returns a list of vocabularies that are currently served, e.g.
 
 ### How does it work in detail?
 
-The webhook server is started via the `docker-compose.yml` with a simple `docker compose up`.
-The [Sysbox](https://github.com/nestybox/sysbox) runtime is used to safley run docker in docker.
-This is necessary, because the webhook server starts the docker image of [`skohub-vocabs`](https://hub.docker.com/r/skohub/skohub-vocabs-docker/tags) to build the vocabularies, when it got triggered.
+The webhook server starts the docker image of [`skohub-vocabs`](https://hub.docker.com/r/skohub/skohub-vocabs-docker/tags) to build the vocabularies, when it got triggered.
 We also bind mount the `.env` file to pass environment variables and the `dist`-folder.
 When a webhook is received and valid, the webhook server executes a docker run command where it bind mounts the received turtle files into the container and at the end copies the built vocabularies from the public folder to the dist folder with the above mentioned path construction.
 The `images` volume is used to save the downloaded docker images, so the are persisted during restarts.
 
-## Running the webhook server
+## Running and Rebuilding the webhook server
 
 The webhook server allows to trigger a build when vocabularies are updated (i.e. changes are merged into the `main` branch) on GitHub.
+
+### Using Docker Compose
 
 Running `docker compose up` will start the server on the defined `PORT` and expose the `/build` and `/image` endpoints.
 Add `-d` flag to run in detached mode.
@@ -77,9 +77,17 @@ In order to wire this up with GitHub, this has to be available to the public. Yo
 
 ![image](https://user-images.githubusercontent.com/149825/62695510-c756b880-b9d6-11e9-86a9-0c4dcd6bc2cd.png)
 
-## Restarting or Rebuilding the webhook server
-
 To restart and rebuild the service, e.g. after a `git pull` do `docker compose up --build --force-recreate`.
+
+### Using Systemd
+
+In order to set up Systemd service:
+
+- Creates symlink: `sudo ln -s /opt/skohub-webhook/skohub-webhook.service /etc/systemd/system/skohub-webhook.service`
+- Reload config: `sudo systemctl daemon-reload`
+- Start Service: `sudo systemctl start skohub-webhook.service`
+- Enable Service: `sudo systemctl enable skohub-webhook.service`
+- Create directories: `cd / opt/skohub-webhook && mkdir data public && chmod 777 data public`
 
 ## Rebuilding vocabularies
 

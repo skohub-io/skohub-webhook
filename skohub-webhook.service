@@ -1,17 +1,19 @@
 [Unit]
 Description=SkoHub Webhook
-After=network.target
+Documentation=https://github.com/skohub-io/skohub-webhook
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
 
 [Service]
 Type=simple
 User=skohub
 Group=skohub
 WorkingDirectory=/opt/skohub-webhook
-
-Environment=HOME=/usr/local/skohub
 Environment=NODE_ENV=production
-
-ExecStart=/bin/bash -c 'source /usr/local/skohub/.nvm/nvm.sh && nvm use 22 && npm run start'
+# Reads /opt/skohub-webhook/.env via dotenv at runtime.
+# Use the nvm-managed Node 22 the skohub user installed.
+ExecStart=/bin/bash -lc 'source "$HOME/.nvm/nvm.sh" && nvm exec 22 npm start'
 Restart=on-failure
 RestartSec=5
 

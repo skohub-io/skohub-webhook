@@ -1,10 +1,12 @@
 # SkoHub Webhook
 
 A webhook server that allows triggering the build SKOS vocabularies to nice HTML pages with a basic lookup API using [SkoHub Vocabs](https://github.com/skohub-io/skohub-vocabs). The build can be triggered from GitHub or GitLab. For usage & implementation details see the [blog post](https://blog.lobid.org/2019/09/27/presenting-skohub-vocabs.html).
+
 ## Prerequisites
 
-- We use docker for building the vocabs, so make sure to have it installed (https://docs.docker.com/get-docker/)
-- We use sysbox to safley run docker in docker. Make sure you have it installed: https://github.com/nestybox/sysbox
+- **Docker** installed on the host (the daemon the service talks to).
+- **Node.js 22** on the host (matches `.nvmrc`); [nvm](https://github.com/nvm-sh/nvm) is recommended.
+- A dedicated service user (e.g. `skohub`) that is a member of the **`docker` group**.
 
 ## Set up
 
@@ -59,35 +61,53 @@ Returns a list of vocabularies that are currently served, e.g.
 
 ### How does it work in detail?
 
-The webhook server starts the docker image of [`skohub-vocabs`](https://hub.docker.com/r/skohub/skohub-vocabs-docker/tags) to build the vocabularies, when it got triggered.
-We also bind mount the `.env` file to pass environment variables and the `dist`-folder.
-When a webhook is received and valid, the webhook server executes a docker run command where it bind mounts the received turtle files into the container and at the end copies the built vocabularies from the public folder to the dist folder with the above mentioned path construction.
-The `images` volume is used to save the downloaded docker images, so the are persisted during restarts.
+The webhook server runs **directly on the host** as a systemd service. On each valid hook, it runs `docker run … skohub/skohub-vocabs-docker` against the **host Docker daemon** — a sibling container, not a nested one. It bind-mounts `./public` and `./data` (resolved as host paths because the service's `WorkingDirectory` is the repo root), then moves the built site into `dist/<repository>/<ref>/`.
 
-## Running and Rebuilding the webhook server
+## Running the webhook server
 
-The webhook server allows to trigger a build when vocabularies are updated (i.e. changes are merged into the `main` branch) on GitHub.
+The webhook server is managed by systemd. Follow the runbook below to set it up on the host.
 
-### Using Docker Compose
+### Systemd setup
 
-Running `docker compose up` will start the server on the defined `PORT` and expose the `/build` and `/image` endpoints.
-Add `-d` flag to run in detached mode.
-Use `docker compose logs` to see the logs (add `-f` to follow).
-In order to wire this up with GitHub, this has to be available to the public. You can then configure the webhook in your GitHub repositories settings:
+```bash
+# As root, on the host:
+useradd --system --create-home --shell /bin/bash skohub
+usermod -aG docker skohub
+
+git clone https://github.com/skohub-io/skohub-webhook.git /opt/skohub-webhook
+chown -R skohub:skohub /opt/skohub-webhook
+sudo -u skohub bash -lc 'cd /opt/skohub-webhook && nvm install 22 && npm ci --omit=dev'
+sudo -u skohub cp /opt/skohub-webhook/.env.example /opt/skohub-webhook/.env   # then edit secrets
+
+# Create required directories owned by the service user:
+sudo -u skohub mkdir -p /opt/skohub-webhook/{data,public,dist/build}
+
+ln -s /opt/skohub-webhook/skohub-webhook.service /etc/systemd/system/skohub-webhook.service
+systemctl daemon-reload
+systemctl enable --now skohub-webhook.service
+journalctl -u skohub-webhook -f
+```
+
+In order to wire this up with GitHub, the webhook endpoint has to be available to the public. You can then configure the webhook in your GitHub repositories settings:
 
 ![image](https://user-images.githubusercontent.com/149825/62695510-c756b880-b9d6-11e9-86a9-0c4dcd6bc2cd.png)
 
-To restart and rebuild the service, e.g. after a `git pull` do `docker compose up --build --force-recreate`.
+To restart the service after a `git pull`:
 
-### Using Systemd
+```bash
+cd /opt/skohub-webhook && sudo -u skohub npm ci --omit=dev
+sudo systemctl restart skohub-webhook.service
+```
 
-In order to set up Systemd service:
+### Migrating from the Docker-in-Docker setup
 
-- Creates symlink: `sudo ln -s /opt/skohub-webhook/skohub-webhook.service /etc/systemd/system/skohub-webhook.service`
-- Reload config: `sudo systemctl daemon-reload`
-- Start Service: `sudo systemctl start skohub-webhook.service`
-- Enable Service: `sudo systemctl enable skohub-webhook.service`
-- Create directories: `cd / opt/skohub-webhook && mkdir data public && chmod 777 data public`
+If the server previously ran the DinD setup, the `dist/`, `public/`, and `data/` directories may be owned by root (created inside the old container). Run this one-time fix to avoid `EACCES` errors when the service tries to remove or replace built vocab trees (resolves issues #34 and #36):
+
+```bash
+# One-time, fixes EACCES from root-owned dirs created by the old DinD container:
+sudo chown -R skohub:skohub /opt/skohub-webhook/dist /opt/skohub-webhook/public /opt/skohub-webhook/data
+sudo systemctl restart skohub-webhook
+```
 
 ## Rebuilding vocabularies
 
@@ -101,13 +121,17 @@ You also might want to increase the number of `REBUILD_MAX_ATTEMPTS` (to somethi
 To rebuild all vocabularies:
 
 1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`
-1. Make sure to have a recent docker image:  `docker build -t skohub-webhook .`
-1. Then mount the dist folder and the `.env` file and rebuilt the vocabs: `docker run -v ./log.log:/app/log.log -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest "npm run rebuild-vocabs"`
+1. Run the rebuild as the service user:
 
+```bash
+sudo -u skohub bash -lc 'cd /opt/skohub-webhook && npm run rebuild-vocabs'
+```
 
 To rebuild only a specific vocabulary you can provide the GitHub repository and the branch to build:
 
-`docker run -v ./log.log:/app/log.log -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest npm run rebuild-vocabs -- test/test-vocabs main`
+```bash
+sudo -u skohub bash -lc 'cd /opt/skohub-webhook && npm run rebuild-vocabs -- test/test-vocabs main'
+```
 
 ## Cleaning up vocabularies
 
@@ -119,9 +143,17 @@ If the branch does not exist anymore the respective folder will be removed from 
 To clean up do this:
 
 1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`
-1. Make sure to have a recent docker image:  `docker build -t skohub-webhook .`
-1. Do a dry run first and check the output: `docker run -v ./log.log:/app/log.log -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest "npm run cleanup-dist:dry"`
-1. Cleanup, if everything looks ok: `docker run -v ./log.log:/app/log.log -v ./.env:/app/.env -v ./dist:/app/dist skohub-webhook:latest "npm run cleanup-dist"`
+1. Do a dry run first and check the output:
+
+```bash
+sudo -u skohub bash -lc 'cd /opt/skohub-webhook && npm run cleanup-dist:dry'
+```
+
+3. Cleanup, if everything looks ok:
+
+```bash
+sudo -u skohub bash -lc 'cd /opt/skohub-webhook && npm run cleanup-dist'
+```
 
 
 ## Connecting to our webhook server
@@ -141,9 +173,18 @@ Run unit tests with `npm run test:unit`.
 Run integration tests with `npm run test:int`.
 Run both with `npm run test`.
 
-To test the docker setup change the secret in `.env` to `SECRET=ThisIsATest`
-Then start the service with `docker compose up`.
-Run the test script in a separate terminal with `npm run test:docker`.
+To test the docker setup, set `SECRET=ThisIsATest` in `.env` and make sure Docker is available on the host.
+Start the server in one terminal:
+
+```bash
+npm start
+```
+
+Then run the docker test script in a separate terminal:
+
+```bash
+npm run test:docker
+```
 
 ### Test the `/build` endpoint
 

@@ -118,6 +118,8 @@ Depending on the number of hosted vocabularies, you might run into API rate limi
 To avoid this you can provide a [Personal Access Token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens) in `.env` file (see above).
 You also might want to increase the number of `REBUILD_MAX_ATTEMPTS` (to something like 300 or 3000), because rebuilds might take some time, depending on your machine, network, number of vocabularies etc.
 
+**Note:** These commands talk to the running webhook server via `BUILD_URL` (configured in `.env`); make sure the `skohub-webhook` service is active before running them.
+
 To rebuild all vocabularies:
 
 1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`
@@ -143,7 +145,7 @@ If the branch does not exist anymore the respective folder will be removed from 
 To clean up do this:
 
 1. Make a backup of the dist-folder: `cp -R ./dist ./dist-backup`
-1. Do a dry run first and check the output:
+2. Do a dry run first and check the output:
 
 ```bash
 sudo -u skohub bash -lc 'cd /opt/skohub-webhook && npm run cleanup-dist:dry'

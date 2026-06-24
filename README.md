@@ -63,6 +63,10 @@ Returns a list of vocabularies that are currently served, e.g.
 
 The webhook server runs **directly on the host** as a systemd service. On each valid hook, it runs `docker run … skohub/skohub-vocabs-docker` against the **host Docker daemon** — a sibling container, not a nested one. It bind-mounts `./public` and `./data` (resolved as host paths because the service's `WorkingDirectory` is the repo root), then moves the built site into `dist/<repository>/<ref>/`.
 
+The build container is started with `--user $(id -u):$(id -g)`, i.e. as the **service user**. This matters: the `skohub/skohub-vocabs-docker` image is built to run as its baked-in `node` user (uid 1000). If the container ran as that user but our service user has a different uid, the files written into `public/` would be owned by uid 1000, and on the *next* build the service user could not delete the previous output (`EACCES` while removing `dist/<repository>/<ref>/`). Running the container as the service user makes all build output service-user-owned, so rebuilds always succeed regardless of which uid the service user has.
+
+> **Image requirement:** `--user` only works with a **uid-agnostic** image — one whose npm/Gatsby caches live in a writable location and whose `/app` is writable by an arbitrary uid. The stock `skohub/skohub-vocabs-docker` image is *not* uid-agnostic yet (it hardcodes `HOME=/home/node` and an unwritable npm cache); running it as a foreign uid fails the build. Publish the patched image **before** deploying a webhook with `--user`. See the companion change in the [skohub-vocabs](https://github.com/skohub-io/skohub-vocabs) repo.
+
 ## Running the webhook server
 
 The webhook server is managed by systemd. Follow the runbook below to set it up on the host.
@@ -101,13 +105,17 @@ sudo systemctl restart skohub-webhook.service
 
 ### Migrating from the Docker-in-Docker setup
 
-If the server previously ran the DinD setup, the `dist/`, `public/`, and `data/` directories may be owned by root (created inside the old container). Run this one-time fix to avoid `EACCES` errors when the service tries to remove or replace built vocab trees (resolves issues #34 and #36):
+Two separate things caused `EACCES` (issues #34 and #36); both must be handled.
+
+1. **Legacy root-owned trees (one-time).** If the server previously ran the DinD setup, the existing `dist/`, `public/`, and `data/` directories may be owned by root (created inside the old container). Reclaim them once:
 
 ```bash
-# One-time, fixes EACCES from root-owned dirs created by the old DinD container:
+# One-time: fixes EACCES from root-owned dirs left behind by the old DinD container.
 sudo chown -R skohub:skohub /opt/skohub-webhook/dist /opt/skohub-webhook/public /opt/skohub-webhook/data
 sudo systemctl restart skohub-webhook
 ```
+
+2. **Ongoing build output ownership (every build).** The chown above only fixes the *old* directories. New builds still produce output owned by whoever the build container runs as. This is handled by running the container as the service user (`--user`, see [How does it work in detail?](#how-does-it-work-in-detail)) **together with** a uid-agnostic `skohub/skohub-vocabs-docker` image. If you deploy this webhook against the unpatched stock image, builds will fail; publish the patched image first.
 
 ## Rebuilding vocabularies
 

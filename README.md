@@ -80,6 +80,11 @@ usermod -aG docker skohub
 
 git clone https://github.com/skohub-io/skohub-webhook.git /opt/skohub-webhook
 chown -R skohub:skohub /opt/skohub-webhook
+
+# Install nvm for the service user (the service unit sources $HOME/.nvm/nvm.sh).
+# Skip if Node 22 is already on PATH for the skohub user by other means.
+sudo -u skohub bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash'
+
 sudo -u skohub bash -lc 'cd /opt/skohub-webhook && nvm install 22 && npm ci --omit=dev'
 sudo -u skohub cp /opt/skohub-webhook/.env.example /opt/skohub-webhook/.env   # then edit secrets
 

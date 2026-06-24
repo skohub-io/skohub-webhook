@@ -1,6 +1,16 @@
 /* eslint no-console: 0 */ // --> OFF
 process.env.SECRET = "secret"
 process.env.BUILD_URL = "http://localhost:8081/build"
+process.env.DOCKER_IMAGE = "test-image"
+process.env.DOCKER_TAG = "latest"
+
+// Importing the server runs pullImage() at module load, which shells out to
+// `docker pull`. Stub child_process so tests don't invoke a real Docker daemon.
+jest.mock("child_process", () => ({
+  ...jest.requireActual("child_process"),
+  execSync: jest.fn(() => Buffer.from("")),
+  exec: jest.fn(),
+}))
 
 const fs = require("fs-extra")
 const { server, getFile } = require("../src/server")

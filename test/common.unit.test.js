@@ -677,7 +677,7 @@ describe("getRepositoryFiles", () => {
   test("Should return the valid file for the given type gitlab", async () => {
     nock("https://gitlab.com:443", { encodedQueryParams: true })
       .get("/api/v4/projects/dobladov%2FtestTTL/repository/tree")
-      .query({ ref: "refs%2Fheads%2Fmaster" })
+      .query({ ref: "master" })
       .reply(200, [
         {
           id: "28941200a5fabbe46aa64bf949e684f4feeab5b2",
@@ -741,7 +741,7 @@ describe("getRepositoryFiles", () => {
   test("Should throw error of 404 not found", async () => {
     nock("https://gitlab.com:443", { encodedQueryParams: true })
       .get("/api/v4/projects/custom%2FtestTTL/repository/tree")
-      .query({ ref: "refs%2Fheads%2Fmaster" })
+      .query({ ref: "master" })
       .reply(200, { message: "404 Not Found" })
 
     await expect(

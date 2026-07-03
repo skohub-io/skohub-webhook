@@ -218,16 +218,6 @@ const parseHook = (headers, body, secret) => {
   }
 }
 
-function checkStdOutForError(text) {
-  // SHACL Warning message
-  if (text.includes("-----------warning--------------")) {
-    return false
-  } else if (text.includes("error")) {
-    return true
-  }
-}
-
-
 module.exports = {
   getHeaders,
   getHookGitHub,
@@ -237,7 +227,6 @@ module.exports = {
   isSecured,
   getRepositoryFiles,
   parseHook,
-  checkStdOutForError,
   securePayload,
   gitHubApiHeaders
 }
